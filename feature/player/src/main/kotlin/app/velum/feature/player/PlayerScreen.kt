@@ -29,8 +29,8 @@ import app.velum.core.designsystem.VelumAmber
 import app.velum.core.designsystem.VelumButton
 import app.velum.core.designsystem.VelumDanger
 import app.velum.core.designsystem.VelumMist
-import app.velum.core.model.DemoCatalog
 import app.velum.core.model.PlaybackProgress
+import app.velum.core.model.PreparedTitles
 import app.velum.core.model.formatClock
 
 @OptIn(UnstableApi::class)
@@ -40,8 +40,8 @@ fun PlayerRoute(
     progress: PlaybackProgress,
     onBack: () -> Unit,
 ) {
-    val title = DemoCatalog.find(titleId)
-    if (title == null) {
+    val title = PreparedTitles.title(titleId)
+    if (title == null || title.streams.isEmpty()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()

@@ -26,5 +26,6 @@ if (!modelOnly) {
     include(":feature:home")
     include(":feature:details")
     include(":feature:player")
+    include(":feature:addons")
     include(":app")
 }

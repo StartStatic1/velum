@@ -41,7 +41,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.1.0 --yes --cleanup-tag || true
-          gh release create v0.1.0 "$RUNNER_TEMP/Velum.apk" \
-            --title "Velum 0.1.0" \
-            --notes "APK de teste. Não extraia. Abra o arquivo no celular, permita a instalação, toque em Sintel e depois em Assistir."
+          gh release delete v0.2.0 --yes --cleanup-tag || true
+          gh release create v0.2.0 "$RUNNER_TEMP/Velum.apk" \
+            --title "Velum 0.2.0" \
+            --notes "Addon por endereço HTTPS, no formato do Nuvio, mais o catálogo da Blender. Não extraia o APK. Abra no celular, permita a instalação e cole o manifesto do seu servidor."

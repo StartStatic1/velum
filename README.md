@@ -1,6 +1,6 @@
-# Velum 0.1
+# Velum 0.2
 
-Aplicativo Android de catálogo e reprodução. Esta versão mostra um catálogo de demonstração e reproduz arquivos oficiais da Blender Foundation. Não é um painel, não tem conta e não instala add-ons.
+Aplicativo Android de catálogo e reprodução. Traz os três filmes livres da Blender e um campo para colar o endereço de um addon seu, no formato que o Nuvio usa (`manifest.json`, só HTTPS). O Velum não tem servidor.
 
 O APK de depuração foi compilado uma vez, com `assembleDebug`. Ele **não foi instalado num telefone**, então a imagem e o som ainda precisam ser confirmados no aparelho.
 
@@ -15,6 +15,10 @@ O APK de depuração foi compilado uma vez, com `assembleDebug`. Ele **não foi 
 ## No celular, agora
 
 O arquivo para instalar fica neste endereço, depois que a Action ficar verde:
+
+https://github.com/StartStatic1/velum/releases/download/v0.2.0/Velum.apk
+
+A 0.1, só com os filmes da Blender, continua em:
 
 https://github.com/StartStatic1/velum/releases/download/v0.1.0/Velum.apk
 

@@ -15,6 +15,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.velum.core.designsystem.VelumInk
+import app.velum.feature.addons.AddonGateway
+import app.velum.feature.addons.AddonsRoute
 import app.velum.feature.details.DetailsRoute
 import app.velum.feature.home.HomeRoute
 import app.velum.feature.player.PlayerRoute
@@ -24,6 +26,7 @@ import app.velum.feature.player.newPlaybackProgress
 fun VelumApp() {
     val context = LocalContext.current
     val progress = remember { newPlaybackProgress(context) }
+    val addons = remember { AddonGateway(context) }
     val navController = rememberNavController()
 
     Scaffold(
@@ -39,8 +42,16 @@ fun VelumApp() {
         ) {
             composable("home") {
                 HomeRoute(
+                    gateway = addons,
                     onOpenDetails = { id -> navController.navigate("details/$id") },
                     onPlay = { id -> navController.navigate("player/$id") },
+                    onOpenAddons = { navController.navigate("addons") },
+                )
+            }
+            composable("addons") {
+                AddonsRoute(
+                    gateway = addons,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(
@@ -51,6 +62,7 @@ fun VelumApp() {
                 DetailsRoute(
                     titleId = titleId,
                     progress = progress,
+                    gateway = addons,
                     onBack = { navController.popBackStack() },
                     onPlay = { id -> navController.navigate("player/$id") },
                 )

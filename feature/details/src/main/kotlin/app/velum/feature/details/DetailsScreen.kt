@@ -31,38 +31,59 @@ import app.velum.core.designsystem.VelumMistDim
 import app.velum.core.model.DemoCatalog
 import app.velum.core.model.MediaTitle
 import app.velum.core.model.PlaybackProgress
+import app.velum.core.model.PreparedTitles
 import app.velum.core.model.formatByteSize
 import app.velum.core.model.formatClock
+import app.velum.feature.addons.AddonGateway
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class DetailsViewModel(
     titleId: String,
     progress: PlaybackProgress,
+    gateway: AddonGateway,
 ) : ViewModel() {
-    val title: MediaTitle? = DemoCatalog.find(titleId)
+    val title = MutableStateFlow(PreparedTitles.title(titleId))
+    val status = MutableStateFlow<String?>(null)
 
-    val resumeMs: StateFlow<Long> = if (title == null) {
-        MutableStateFlow(0L)
-    } else {
-        progress.observe(titleId).stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5_000),
-            0L,
-        )
+    val resumeMs: StateFlow<Long> = progress.observe(titleId).stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        0L,
+    )
+
+    init {
+        if (DemoCatalog.find(titleId) == null) {
+            viewModelScope.launch {
+                status.value = "Buscando no addon..."
+                try {
+                    val resolved = gateway.resolve(titleId)
+                    title.value = resolved
+                    status.value = when {
+                        resolved == null -> "Não achei esse título."
+                        resolved.streams.isEmpty() -> "Esse addon não entregou um link HTTPS direto."
+                        else -> null
+                    }
+                } catch (error: Exception) {
+                    status.value = error.message ?: "Não deu para abrir o addon."
+                }
+            }
+        }
     }
 }
 
 class DetailsViewModelFactory(
     private val titleId: String,
     private val progress: PlaybackProgress,
+    private val gateway: AddonGateway,
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(DetailsViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return DetailsViewModel(titleId, progress) as T
+            return DetailsViewModel(titleId, progress, gateway) as T
         }
         error("ViewModel desconhecido.")
     }
@@ -72,20 +93,24 @@ class DetailsViewModelFactory(
 fun DetailsRoute(
     titleId: String,
     progress: PlaybackProgress,
+    gateway: AddonGateway,
     onBack: () -> Unit,
     onPlay: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: DetailsViewModel = viewModel(
         key = "details-$titleId",
-        factory = DetailsViewModelFactory(titleId, progress),
+        factory = DetailsViewModelFactory(titleId, progress, gateway),
     )
     val resumeMs by viewModel.resumeMs.collectAsStateWithLifecycle()
+    val title by viewModel.title.collectAsStateWithLifecycle()
+    val status by viewModel.status.collectAsStateWithLifecycle()
     DetailsScreen(
-        title = viewModel.title,
+        title = title,
+        status = status,
         resumeMs = resumeMs,
         onBack = onBack,
-        onPlay = { title -> onPlay(title.id) },
+        onPlay = { item -> onPlay(item.id) },
         modifier = modifier,
     )
 }
@@ -93,6 +118,7 @@ fun DetailsRoute(
 @Composable
 fun DetailsScreen(
     title: MediaTitle?,
+    status: String?,
     resumeMs: Long,
     onBack: () -> Unit,
     onPlay: (MediaTitle) -> Unit,
@@ -137,15 +163,27 @@ fun DetailsScreen(
                 color = VelumMist,
             )
             SectionLabel("Fontes")
-            title.streams.forEach { stream ->
+            if (title.streams.isEmpty()) {
                 Text(
-                    text = "${stream.label} · ${formatByteSize(stream.bytes)}",
+                    text = status ?: "Sem fonte HTTPS direta.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = VelumMist,
+                )
+            }
+            title.streams.forEach { stream ->
+                val size = if (stream.bytes > 0L) " · ${formatByteSize(stream.bytes)}" else ""
+                Text(
+                    text = "${stream.label}$size",
                     style = MaterialTheme.typography.bodyMedium,
                     color = VelumMist,
                 )
             }
             Text(
-                text = "Licença: ${title.license}. O Velum não hospeda o arquivo. A reprodução usa o endereço oficial em download.blender.org.",
+                text = if (title.license == "Addon") {
+                    "O Velum não hospeda o vídeo. A reprodução usa o link HTTPS que o addon entregou."
+                } else {
+                    "Licença: ${title.license}. O Velum não hospeda o arquivo. A reprodução usa o endereço oficial em download.blender.org."
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = VelumMistDim,
             )
@@ -156,17 +194,19 @@ fun DetailsScreen(
                     color = VelumMist,
                 )
             }
-            val action = if (resumeMs >= 5_000L) {
-                "Continuar de ${formatClock(resumeMs)}"
-            } else {
-                "Assistir"
+            if (title.streams.isNotEmpty()) {
+                val action = if (resumeMs >= 5_000L) {
+                    "Continuar de ${formatClock(resumeMs)}"
+                } else {
+                    "Assistir"
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                VelumButton(
+                    text = action,
+                    onClick = { onPlay(title) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            VelumButton(
-                text = action,
-                onClick = { onPlay(title) },
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
     }
 }
